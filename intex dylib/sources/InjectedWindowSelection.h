@@ -12,17 +12,11 @@ static inline UIWindow *MizzeFindGameWindow(UIApplication *app) {
     if (!app) return nil;
     UIWindow *fallback = nil;
 
-    // 1. Kiểm tra connectedScenes trên iOS 13, 14, 15, 16, 17, 18
+    // 1. Kiểm tra connectedScenes trên iOS 13+
     if (@available(iOS 13.0, *)) {
         for (UIScene *scene in app.connectedScenes) {
             if (![scene isKindOfClass:UIWindowScene.class]) continue;
             UIWindowScene *ws = (UIWindowScene *)scene;
-            
-            // Nếu scene có keyWindow hợp lệ
-            if (ws.keyWindow && MizzeUsableGameWindow(ws.keyWindow)) {
-                return ws.keyWindow;
-            }
-            
             for (UIWindow *window in ws.windows) {
                 if (!MizzeUsableGameWindow(window)) continue;
                 if (window.isKeyWindow) return window;
