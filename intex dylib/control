@@ -1,8 +1,9 @@
-Package: com.hoanghadev.mizze.nokey
-Name: Mizze Free Fire No Key
-Version: 1.0
+Package: com.zev.vip.menu
+Name: ZEV VIP Free Fire
+Version: 1.0.0
 Architecture: iphoneos-arm
-Description: Standalone Free Fire dylib menu source.
-Maintainer: HoangHaDev
-Author: HoangHaDev
+Description: ZEV VIP Mod Menu for Free Fire. Contact Telegram: @vassco911
+Maintainer: ZEV VIP
+Author: ZEV VIP
 Section: Tweaks
+Depends: mobilesubstrate

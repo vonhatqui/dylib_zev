@@ -1,4 +1,4 @@
-name: Build Dylib
+name: Build Dylib and Deb
 
 on:
   push:
@@ -18,26 +18,30 @@ jobs:
         with:
           theos-sdks: 'https://github.com/theos/sdks'
 
-      - name: Build Dylib
+      - name: Build Dylib and Deb Package
         run: |
           mkdir -p temp_build
           cp -R "intex dylib/"* temp_build/
           cd temp_build
           find . -name "control" -exec perl -pi -e 's/\r//g' {} \; || true
+          find . -name "*.plist" -exec perl -pi -e 's/\r//g' {} \; || true
           make clean
-          make
+          make package FINALPACKAGE=1
           mkdir -p packages
           cp .theos/obj/arm64/*.dylib packages/libsubsystem.dylib || true
+          cp packages/*.dylib ../ || true
+          cp packages/*.deb ../ || true
         env:
           CFLAGS: "-Wl,-U,___isPlatformVersionAtLeast"
           TARGET: iphone:clang:16.5:13.0
           ARCHS: arm64
 
-      - name: Upload Dylib Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Zev-Dylib
+          name: Zev-Package
           path: |
-            temp_build/.theos/obj/arm64/*.dylib
+            temp_build/packages/*.deb
             temp_build/packages/*.dylib
+            temp_build/.theos/obj/arm64/*.dylib
           if-no-files-found: warn
