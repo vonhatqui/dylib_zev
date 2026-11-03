@@ -74,22 +74,28 @@ static void ScheduleInjectedOverlay(NSTimeInterval delay) {
 }
 
 static void __attribute__((constructor)) StealthDylibEntryPoint() {
-    // Loader callbacks run before UIApplicationMain. Only enqueue here: no
-    // UIKit objects, synthetic touches, system hooks, or integrity scans.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8*NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    // Đăng ký observer ngay khi main runloop bắt đầu
+    dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
             NSNotificationCenter *center = NSNotificationCenter.defaultCenter;
-            for (NSNotificationName name in @[UIApplicationDidFinishLaunchingNotification,
-                                               UIApplicationDidBecomeActiveNotification,
-                                               UIWindowDidBecomeKeyNotification]) {
+            NSMutableArray *names = [NSMutableArray arrayWithArray:@[
+                UIApplicationDidFinishLaunchingNotification,
+                UIApplicationDidBecomeActiveNotification,
+                UIWindowDidBecomeKeyNotification
+            ]];
+            if (@available(iOS 13.0, *)) {
+                [names addObject:UISceneDidActivateNotification];
+                [names addObject:UISceneWillEnterForegroundNotification];
+            }
+            for (NSNotificationName name in names) {
                 [center addObserverForName:name object:nil queue:NSOperationQueue.mainQueue
                                 usingBlock:^(NSNotification *notification) {
                     setupAttempts = 0;
                     ScheduleInjectedOverlay(0.25);
                 }];
             }
-            // Also covers a dylib loaded after the game's launch notification.
-            ScheduleInjectedOverlay(0.25);
+            // Thử khởi tạo sau 2.0s để Unity chuẩn bị xong window ban đầu
+            ScheduleInjectedOverlay(2.0);
         }
     });
 }

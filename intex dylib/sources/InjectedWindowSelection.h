@@ -2,18 +2,28 @@
 #import <UIKit/UIKit.h>
 
 static inline BOOL MizzeUsableGameWindow(UIWindow *window) {
-    return window && !window.hidden && window.alpha > 0 &&
-           window.windowLevel == UIWindowLevelNormal &&
-           window.rootViewController && !CGRectIsEmpty(window.bounds);
+    if (!window || window.hidden || window.alpha <= 0.01) return NO;
+    if (CGRectIsEmpty(window.bounds) || window.bounds.size.width <= 10 || window.bounds.size.height <= 10) return NO;
+    if (!window.rootViewController) return NO;
+    return YES;
 }
 
 static inline UIWindow *MizzeFindGameWindow(UIApplication *app) {
+    if (!app) return nil;
     UIWindow *fallback = nil;
+
+    // 1. Kiểm tra connectedScenes trên iOS 13, 14, 15, 16, 17, 18
     if (@available(iOS 13.0, *)) {
         for (UIScene *scene in app.connectedScenes) {
-            if (![scene isKindOfClass:UIWindowScene.class] ||
-                scene.activationState != UISceneActivationStateForegroundActive) continue;
-            for (UIWindow *window in ((UIWindowScene *)scene).windows) {
+            if (![scene isKindOfClass:UIWindowScene.class]) continue;
+            UIWindowScene *ws = (UIWindowScene *)scene;
+            
+            // Nếu scene có keyWindow hợp lệ
+            if (ws.keyWindow && MizzeUsableGameWindow(ws.keyWindow)) {
+                return ws.keyWindow;
+            }
+            
+            for (UIWindow *window in ws.windows) {
                 if (!MizzeUsableGameWindow(window)) continue;
                 if (window.isKeyWindow) return window;
                 if (!fallback) fallback = window;
@@ -22,12 +32,16 @@ static inline UIWindow *MizzeFindGameWindow(UIApplication *app) {
     }
     if (fallback) return fallback;
 
-    // Many Unity hosts use the UIApplicationDelegate lifecycle even on newer
-    // iOS. Their connectedScenes set is empty; app.windows is still valid.
-    for (UIWindow *window in app.windows) {
-        if (@available(iOS 13.0, *)) {
-            if (window.windowScene) continue; // Ignore background scenes.
+    // 2. Kiểm tra Delegate Window (UnityAppController thường lưu window ở đây)
+    if (app.delegate && [app.delegate respondsToSelector:@selector(window)]) {
+        UIWindow *delegateWindow = [app.delegate window];
+        if (MizzeUsableGameWindow(delegateWindow)) {
+            return delegateWindow;
         }
+    }
+
+    // 3. Fallback kiểm tra toàn bộ app.windows (hỗ trợ cả khi connectedScenes rỗng)
+    for (UIWindow *window in app.windows) {
         if (!MizzeUsableGameWindow(window)) continue;
         if (window.isKeyWindow) return window;
         if (!fallback) fallback = window;
